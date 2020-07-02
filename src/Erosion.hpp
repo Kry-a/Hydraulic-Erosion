@@ -1,6 +1,4 @@
-#ifndef EROSION_HPP
-#define EROSION_HPP
-
+#pragma once
 
 #include <vector>
 #include <effolkronium/random.hpp>
@@ -15,8 +13,17 @@ struct HeightAndGradient {
 
 class Erosion {
 public:
-    int seed;
-    int erosionRadius = 3;
+    Erosion(unsigned mapSize);
+    void setSeed(int seed);
+    void erode(std::vector<float> &map, unsigned numIterations = 1);
+
+private:
+    std::vector<std::vector<unsigned> *> erosionBrushIndices = std::vector<std::vector<unsigned> *>();
+    std::vector<std::vector<float> *> erosionBrushWeights = std::vector<std::vector<float> *>();
+
+    unsigned mapSize;
+    int seed = 1231204;
+    unsigned erosionRadius = 3;
     float inertia = 0.05f;
     float sedimentCapacityFactor = 4;
     float minSedimentCapacity = 0.01f;
@@ -29,23 +36,6 @@ public:
     float initialWaterVolume = 1;
     float initialSpeed = 1;
 
-    bool hasSeed = false;
-
-    void erode(std::vector<float> *map, int mapSize, int numIterations = 1, bool resetSeed = false);
-
-private:
-    std::vector<std::vector<int> *> erosionBrushIndices = std::vector<std::vector<int> *>();
-    std::vector<std::vector<float> *> erosionBrushWeights = std::vector<std::vector<float> *>();
-
-    int currentSeed;
-    int currentErosionRadius;
-    int currentMapSize;
-
-    void initialize(int mapSize, bool resetSeed);
-    HeightAndGradient* calculateHeightAndGradient(std::vector<float> *nodes, int mapSize,
-                                                 float posX, float posY);
-    void initializeBrushIndices(int mapSize, int radius);
+    void initializeBrushIndices();
+    HeightAndGradient calculateHeightAndGradient(std::vector<float> &nodes, float posX, float posY);
 };
-
-
-#endif

@@ -11,5 +11,5 @@ add_subdirectory(include/random)
 
 find_package(TIFF)
 
-add_executable(Hydraulic-Erosion src/main.cpp src/Erosion.hpp src/Erosion.cpp simplex/SimplexNoise.hpp simplex/SimplexNoise.cpp)
+add_executable(Hydraulic-Erosion src/main.cpp src/Erosion.cpp simplex/SimplexNoise.cpp)
 target_link_libraries(Hydraulic-Erosion effolkronium_random TIFF::TIFF)
