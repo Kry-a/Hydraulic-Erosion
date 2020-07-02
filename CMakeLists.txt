@@ -11,5 +11,5 @@ add_subdirectory(include/random)
 
 find_package(TIFF)
 
-add_executable(Terrain-Generation main.cpp Erosion.hpp Erosion.cpp simplex/SimplexNoise.hpp simplex/SimplexNoise.cpp)
+add_executable(Terrain-Generation src/main.cpp src/Erosion.hpp src/Erosion.cpp simplex/SimplexNoise.hpp simplex/SimplexNoise.cpp)
 target_link_libraries(Terrain-Generation effolkronium_random TIFF::TIFF)
