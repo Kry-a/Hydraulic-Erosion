@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD 20)
 add_subdirectory(include/random)
 
 find_package(TIFF)
+find_package(OpenMP)
 
 add_executable(Hydraulic-Erosion src/main.cpp src/Erosion.cpp simplex/SimplexNoise.cpp)
-target_link_libraries(Hydraulic-Erosion effolkronium_random TIFF::TIFF)
+target_link_libraries(Hydraulic-Erosion effolkronium_random TIFF::TIFF OpenMP::OpenMP_CXX)

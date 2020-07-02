@@ -2,6 +2,7 @@
 #include "../simplex/SimplexNoise.hpp"
 #include <tiffio.h>
 #include <iostream>
+#include <omp.h>
 
 void writeImage(const char* name, int size, uint16_t* buffer, int sizeOfBuffer) {
     TIFF* tif = TIFFOpen(name, "w");
@@ -24,6 +25,8 @@ void writeImage(const char* name, int size, uint16_t* buffer, int sizeOfBuffer) 
 
 void generateMap(std::vector<float>& buffer, unsigned resolution) {
     const SimplexNoise noise(1.0f, 0.5f, 1.99f, 0.5f);
+
+    #pragma omp parallel for schedule(static)
     for (unsigned i = 0; i < resolution * resolution; i++)
         buffer[i] = ((noise.fractal(8, (float)i / resolution / resolution, (i % resolution) / (float)resolution) + 1) / 2);
 }
@@ -45,6 +48,7 @@ int main(int argc, char* argv[]) {
 
     // libtiff needs it to be in uint16_t since we're saving in 16 bits
     std::vector<uint16_t> toSave(map.size());
+    #pragma omp parallel for schedule(static)
     for (unsigned i = 0; i < map.size(); i++)
         toSave[i] = map[i] * __UINT16_MAX__;
 
