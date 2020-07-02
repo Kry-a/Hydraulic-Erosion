@@ -32,7 +32,7 @@ std::vector<float> generateMap(int resolution) {
 
 int main(int argc, char* argv[]) {
     if (argc < 4) {
-        std::cout << "Usage is ./Terrain-Generator [filename] [resolution] [iterations]" << std::endl;
+        std::cout << "Usage is ./Hydraulic-Erosion <filename> <resolution> <iterations>" << std::endl;
         return EXIT_FAILURE;
     }
 
