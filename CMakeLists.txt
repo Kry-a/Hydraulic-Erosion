@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12.4)
-project(Terrain-Generation)
+project(Hydraulic-Erosion)
 
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
@@ -11,5 +11,5 @@ add_subdirectory(include/random)
 
 find_package(TIFF)
 
-add_executable(Terrain-Generation src/main.cpp src/Erosion.hpp src/Erosion.cpp simplex/SimplexNoise.hpp simplex/SimplexNoise.cpp)
-target_link_libraries(Terrain-Generation effolkronium_random TIFF::TIFF)
+add_executable(Hydraulic-Erosion src/main.cpp src/Erosion.hpp src/Erosion.cpp simplex/SimplexNoise.hpp simplex/SimplexNoise.cpp)
+target_link_libraries(Hydraulic-Erosion effolkronium_random TIFF::TIFF)
