@@ -1,5 +1,5 @@
 #include "Erosion.hpp"
-#include "simplex/SimplexNoise.hpp"
+#include "../simplex/SimplexNoise.hpp"
 #include <tiffio.h>
 #include <iostream>
 
