@@ -40,8 +40,6 @@ void Erosion::erode(std::vector<float> *map, int mapSize, int numIterations, boo
             float cellOffsetX = posX - nodeX;
             float cellOffsetY = posY - nodeY;
 
-            //std::cout << "Old\n";
-
             // Calculate droplet's height and direction of flow with bilinear interpolation of surrounding heights
             HeightAndGradient* heightAndGradient = calculateHeightAndGradient(map, mapSize, posX, posY);
             // Update the droplet's direction and position (move position 1 unit regardless of speed)
@@ -49,7 +47,6 @@ void Erosion::erode(std::vector<float> *map, int mapSize, int numIterations, boo
             dirY = (dirY * inertia - heightAndGradient->gradientY * (1 - inertia));
             // Normalize direction
             float len = std::sqrt(dirX * dirX + dirY * dirY);
-            //std::cout << " dirX " << dirX << " dirY " << dirY << "\n";
             if (len != 0) {
                 dirX /= len;
                 dirY /= len;
@@ -57,14 +54,10 @@ void Erosion::erode(std::vector<float> *map, int mapSize, int numIterations, boo
             posX += dirX;
             posY += dirY;
 
-            //std::cout << "   dirX " << dirX << " dirY " << dirY << "\n";
-
             // Stop simulating droplet if it's not moving or has flowed over edge of map
             if ((dirX == 0 && dirY == 0) || posX < 0 || posX >= mapSize - 1 || posY < 0 || posY >= mapSize - 1) {
                 break;
             }
-
-            //std::cout << "New\n";
 
             // Find the droplet's new height and calculate the deltaHeight
             auto newHeightYes = calculateHeightAndGradient(map, mapSize, posX, posY);
@@ -82,9 +75,7 @@ void Erosion::erode(std::vector<float> *map, int mapSize, int numIterations, boo
 
                 // Add the sediment to the four nodes of the current cell using bilinear interpolation
                 // Deposition is not distributed over a radius (like erosion) so that it can fill small pits
-                //printf("%f ", map->at(dropletIndex));
                 map->at(dropletIndex) += amountToDeposit * (1 - cellOffsetX) * (1 - cellOffsetY);
-                //printf("%f\n", map->at(dropletIndex));
                 map->at(dropletIndex + 1) += amountToDeposit * cellOffsetX * (1 - cellOffsetY);
                 map->at(dropletIndex + mapSize) += amountToDeposit * (1 - cellOffsetX) * cellOffsetY;
                 map->at(dropletIndex + mapSize + 1) += amountToDeposit * cellOffsetX * cellOffsetY;
@@ -103,9 +94,7 @@ void Erosion::erode(std::vector<float> *map, int mapSize, int numIterations, boo
                 }
             }
 
-            //std::cout << " speed " << speed << " deltaHeight " << deltaHeight << " gravity " << gravity << " everything " << speed * speed + deltaHeight * gravity << "\n";
             speed = std::sqrt(speed * speed + std::abs(deltaHeight) * gravity);
-            //std::cout << "  new speed " << speed << "\n";
             water *= (1 - evaporateSpeed);
 
             delete heightAndGradient;
@@ -190,6 +179,4 @@ void Erosion::initializeBrushIndices(int mapSize, int radius) {
             erosionBrushWeights[i]->push_back(weights[j] / weightSum);
         }
     }
-
-    //std::cout << erosionBrushIndices.size() << std::endl;
 }

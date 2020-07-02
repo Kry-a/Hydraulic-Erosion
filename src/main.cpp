@@ -25,7 +25,6 @@ std::vector<float> generateMap(int resolution) {
     std::vector<float> buf(resolution * resolution);
     const SimplexNoise noise(1.0f, 0.5f, 1.99f, 0.5f);
     for (int i = 0; i < resolution * resolution; i++) {
-        //std::cout << ((noise.fractal(8, i / resolution, i % resolution) + 1) / 2 * __UINT16_MAX__) << std::endl;
         buf[i] = ((noise.fractal(8, (float)i / resolution / resolution, (i % resolution) / (float)resolution) + 1) / 2);
     }
     return buf;
@@ -41,8 +40,6 @@ int main(int argc, char* argv[]) {
 
     auto map = generateMap(resolution);
     std::cout << "Finished generating map" << std::endl;
-
-    //std::cout << " " << map[0] << " " << map[1] << " " << map[2] << std::endl;
 
     Erosion eroder = Erosion();
     eroder.seed = 1231204;
