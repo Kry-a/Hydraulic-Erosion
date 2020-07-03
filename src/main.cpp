@@ -3,7 +3,6 @@
 #include <tiffio.h>
 #include <iostream>
 #include <omp.h>
-#include <string.h>
 
 void writeImage(const char* name, int size, uint16_t* buffer, int sizeOfBuffer) {
     TIFF* tif = TIFFOpen(name, "w");
@@ -24,54 +23,36 @@ void writeImage(const char* name, int size, uint16_t* buffer, int sizeOfBuffer) 
     }
 }
 
-template <compute_mode_e COMPUTE_MODE = compute_mode_e::cpu>
-void generateMap(std::vector<float> &buffer, unsigned resolution) {
+void generateMap(std::vector<float>& buffer, unsigned resolution) {
     const SimplexNoise noise(1.0f, 0.5f, 1.99f, 0.5f);
 
-    #pragma omp parallel for schedule(static) if (COMPUTE_MODE != compute_mode_e::cpu)
+    #pragma omp parallel for schedule(static)
     for (unsigned i = 0; i < resolution * resolution; i++)
         buffer[i] = ((noise.fractal(8, (float)i / resolution / resolution, (i % resolution) / (float)resolution) + 1) / 2);
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 5 || argc > 6) {
-        std::cerr << "Usage is ./Hydraulic-Erosion mode filename resolution iterations [seed]" << std::endl;
+    if (argc < 4 || argc > 5) {
+        std::cerr << "Usage is ./Hydraulic-Erosion filename resolution iterations [seed]" << std::endl;
         return EXIT_FAILURE;
     }
 
-    unsigned resolution = atoi(argv[3]), iterations = atoi(argv[4]);
+    unsigned resolution = atoi(argv[2]);
+
     std::vector<float> map(resolution * resolution);
+    generateMap(map, resolution);
 
-    if (!strcmp(argv[1], "cpu")) {
-        generateMap<compute_mode_e::cpu>(map, resolution);
-
-        Erosion<compute_mode_e::cpu> eroder(resolution);
-        if (argc == 6) eroder.setSeed(atoi(argv[5]));
-        if (iterations) eroder.erode(map, iterations);
-    } else if (!strcmp(argv[1], "parallel")) {
-        generateMap<compute_mode_e::parallel>(map, resolution);
-
-        Erosion<compute_mode_e::parallel> eroder(resolution);
-        if (argc == 6) eroder.setSeed(atoi(argv[5]));
-        if (iterations) eroder.erode(map, iterations);
-    } else if (!strcmp(argv[1], "gpu")) {
-        generateMap<compute_mode_e::gpu>(map, resolution);
-
-        Erosion<compute_mode_e::gpu> eroder(resolution);
-        if (argc == 6) eroder.setSeed(atoi(argv[5]));
-        if (iterations) eroder.erode(map, iterations);
-    } else {
-        std::cerr << "`mode` must be cpu, parallel or gpu." << std::endl;
-        return EXIT_FAILURE;
-    }
+    Erosion eroder = Erosion(resolution);
+    if (argc == 5) eroder.setSeed(atoi(argv[4]));
+    eroder.erode(map, atoi(argv[3]));
 
     // libtiff needs it to be in uint16_t since we're saving in 16 bits
     std::vector<uint16_t> toSave(map.size());
-    #pragma omp parallel for schedule(static) if (strcmp(argv[1], "cpu"))
+    #pragma omp parallel for schedule(static)
     for (unsigned i = 0; i < map.size(); i++)
         toSave[i] = map[i] * __UINT16_MAX__;
 
-    writeImage(argv[2], resolution, toSave.data(), sizeof(uint16_t) * toSave.size());
+    writeImage(argv[1], resolution, toSave.data(), sizeof(uint16_t) * toSave.size());
 
     return EXIT_SUCCESS;
 }

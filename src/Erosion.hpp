@@ -1,44 +1,25 @@
 #pragma once
 
-#include <type_traits>
 #include <vector>
-#include <string>
-#include <CL/cl.h>
 #include <effolkronium/random.hpp>
 
 using Random = effolkronium::random_static;
 
-struct point_float {
-    float x, y;
-};
-
-struct point_int {
-    int x, y;
-};
-
 struct HeightAndGradient {
     float height;
-    struct point_float gradient;
+    float gradientX;
+    float gradientY;
 };
 
-enum compute_mode_e {cpu, parallel, gpu};
-
-template <compute_mode_e COMPUTE_MODE = compute_mode_e::cpu>
 class Erosion {
 public:
     Erosion(unsigned mapSize);
-    ~Erosion();
     void setSeed(int seed);
     void erode(std::vector<float> &map, unsigned numIterations = 1);
 
 private:
-    std::vector<float> erosionBrush;
-    std::string erosion_cl;
-    cl_context context;
-    cl_command_queue queue;
-    cl_mem map_device, erosionBrush_device, rand_device;
-    cl_program program;
-    cl_kernel kernel;
+    std::vector<std::vector<unsigned> *> erosionBrushIndices = std::vector<std::vector<unsigned> *>();
+    std::vector<std::vector<float> *> erosionBrushWeights = std::vector<std::vector<float> *>();
 
     unsigned mapSize;
     int seed = 1231204;
@@ -56,5 +37,5 @@ private:
     float initialSpeed = 1;
 
     void initializeBrushIndices();
-    HeightAndGradient calculateHeightAndGradient(std::vector<float> &nodes, struct point_float pos);
+    HeightAndGradient calculateHeightAndGradient(std::vector<float> &nodes, float posX, float posY);
 };
