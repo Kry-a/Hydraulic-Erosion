@@ -1,19 +1,22 @@
 #include "Erosion.hpp"
 #include <cmath>
 #include <iostream>
-#include <fenv.h>
+#include <omp.h>
 
-Erosion::Erosion(unsigned mapSize) : mapSize(mapSize) {
-    //feenableexcept(FE_INVALID | FE_OVERFLOW);
+template <compute_mode_e COMPUTE_MODE>
+Erosion<COMPUTE_MODE>::Erosion(unsigned mapSize) : mapSize(mapSize) {
     initializeBrushIndices();
 }
 
-void Erosion::setSeed(int newSeed) {
+template <compute_mode_e COMPUTE_MODE>
+void Erosion<COMPUTE_MODE>::setSeed(int newSeed) {
     seed = newSeed;
     Random::seed(seed);
 }
 
-void Erosion::erode(std::vector<float> &map, unsigned numIterations) {
+template <compute_mode_e COMPUTE_MODE>
+void Erosion<COMPUTE_MODE>::erode(std::vector<float> &map, unsigned numIterations) {
+    #pragma omp parallel for schedule(static) if (COMPUTE_MODE == compute_mode_e::parallel)
     for (unsigned iteration = 0; iteration < numIterations; iteration++) {
         // Creates the droplet at a random X and Y on the map
         float posX = Random::get<float>(0, mapSize - 1);
@@ -25,7 +28,7 @@ void Erosion::erode(std::vector<float> &map, unsigned numIterations) {
         float sediment = 0;
 
         // Simulates the droplet only up to it's max lifetime, prevents an infite loop
-        for (int lifetime = 0; lifetime < maxDropletLifetime; lifetime++) {
+        for (unsigned lifetime = 0; lifetime < maxDropletLifetime; lifetime++) {
             int nodeX = (int)posX;
             int nodeY = (int)posY;
             int dropletIndex = nodeY * mapSize + nodeX;
@@ -69,10 +72,10 @@ void Erosion::erode(std::vector<float> &map, unsigned numIterations) {
 
                 // Add the sediment to the four nodes of the current cell using bilinear interpolation
                 // Deposition is not distributed over a radius (like erosion) so that it can fill small pits
-                map[dropletIndex] += amountToDeposit * (1 - cellOffsetX) * (1 - cellOffsetY);
-                map[dropletIndex + 1] += amountToDeposit * cellOffsetX * (1 - cellOffsetY);
-                map[dropletIndex + mapSize] += amountToDeposit * (1 - cellOffsetX) * cellOffsetY;
-                map[dropletIndex + mapSize + 1] += amountToDeposit * cellOffsetX * cellOffsetY;
+                map.at(dropletIndex) += amountToDeposit * (1 - cellOffsetX) * (1 - cellOffsetY);
+                map.at(dropletIndex + 1) += amountToDeposit * cellOffsetX * (1 - cellOffsetY);
+                map.at(dropletIndex + mapSize) += amountToDeposit * (1 - cellOffsetX) * cellOffsetY;
+                map.at(dropletIndex + mapSize + 1) += amountToDeposit * cellOffsetX * cellOffsetY;
             } else {
                 // Erode a fraction of the droplet's current carry capacity.
                 // Clamp the erosion to the change in height so that it doesn't dig a hole in the terrain behind the droplet
@@ -80,10 +83,11 @@ void Erosion::erode(std::vector<float> &map, unsigned numIterations) {
 
                 // Use erosion brush to erode from all nodes inside the droplet's erosion radius
                 for (unsigned brushPointIndex = 0; brushPointIndex < erosionBrushIndices[dropletIndex]->size(); brushPointIndex++) {
-                    int nodeIndex = (*erosionBrushIndices[dropletIndex])[brushPointIndex];
+                    unsigned nodeIndex = (*erosionBrushIndices[dropletIndex])[brushPointIndex];
+                    if (nodeIndex >= map.size()) continue;
                     float weighedErodeAmount = amountToErode * (*erosionBrushWeights[dropletIndex])[brushPointIndex];
-                    float deltaSediment = (map[nodeIndex] < weighedErodeAmount) ? map[nodeIndex] : weighedErodeAmount;
-                    map[nodeIndex] -= deltaSediment;
+                    float deltaSediment = (map.at(nodeIndex) < weighedErodeAmount) ? map.at(nodeIndex) : weighedErodeAmount;
+                    map.at(nodeIndex) -= deltaSediment;
                     sediment += deltaSediment;
                 }
             }
@@ -94,7 +98,8 @@ void Erosion::erode(std::vector<float> &map, unsigned numIterations) {
     }
 }
 
-HeightAndGradient Erosion::calculateHeightAndGradient(std::vector<float> &nodes, float posX, float posY) {
+template <compute_mode_e COMPUTE_MODE>
+HeightAndGradient Erosion<COMPUTE_MODE>::calculateHeightAndGradient(std::vector<float> &nodes, float posX, float posY) {
     int coordX = (int)posX;
     int coordY = (int)posY;
 
@@ -119,51 +124,52 @@ HeightAndGradient Erosion::calculateHeightAndGradient(std::vector<float> &nodes,
     return (HeightAndGradient){.height = height, .gradientX = gradientX, .gradientY = gradientY};
 }
 
-void Erosion::initializeBrushIndices() {
+template <compute_mode_e COMPUTE_MODE>
+void Erosion<COMPUTE_MODE>::initializeBrushIndices() {
     erosionBrushIndices.reserve(mapSize * mapSize);
     erosionBrushWeights.reserve(mapSize * mapSize);
 
-    std::vector<int> xOffsets(erosionRadius * erosionRadius * 4);
-    std::vector<int> yOffsets(erosionRadius * erosionRadius * 4);
-    std::vector<float> weights(erosionRadius * erosionRadius * 4);
+    std::vector<unsigned> xOffsets((erosionRadius + erosionRadius + 1) * (erosionRadius + erosionRadius + 1));
+    std::vector<unsigned> yOffsets((erosionRadius + erosionRadius + 1) * (erosionRadius + erosionRadius + 1));
+    std::vector<float> weights((erosionRadius + erosionRadius + 1) * (erosionRadius + erosionRadius + 1));
 
-    float weightSum = 0;
-    unsigned addIndex = 0;
-
+    #pragma omp parallel for schedule(static) if (COMPUTE_MODE == compute_mode_e::parallel)
     for (unsigned i = 0; i < (mapSize * mapSize) - 1; i++) {
+        float weightSum = 0;
+        unsigned addIndex = 0;
         unsigned centerX = i % mapSize;
         unsigned centerY = i / mapSize;
 
-        if (centerY <= erosionRadius || centerY >= mapSize - erosionRadius || centerX <= erosionRadius + 1 || centerX >= mapSize - erosionRadius) {
-            weightSum = 0;
-            addIndex = 0;
-            for (int y = -erosionRadius; y <= (int)erosionRadius; y++) {
-                for (int x = -erosionRadius; x <= (int)erosionRadius; x++) {
-                    float sqrDst = x * x + y * y;
-                    if (sqrDst < erosionRadius * erosionRadius) {
-                        int coordX = centerX + x;
-                        int coordY = centerY + y;
+        for (int y = -erosionRadius; y <= (int)erosionRadius; y++) {
+            for (int x = -erosionRadius; x <= (int)erosionRadius; x++) {
+                float sqrDst = x * x + y * y;
+                if (sqrDst < erosionRadius * erosionRadius) {
+                    int coordX = centerX + x;
+                    int coordY = centerY + y;
 
-                        if (0 <= coordX && coordX < (int)mapSize && 0 <= coordY && coordY < (int)mapSize) {
-                            float weight = 1 - std::sqrt(sqrDst) / erosionRadius;
-                            weightSum += weight;
-                            weights[addIndex] = weight;
-                            xOffsets[addIndex] = x;
-                            yOffsets[addIndex] = y;
-                            addIndex++;
-                        }
+                    if (0 <= coordX && coordX < (int)mapSize && 0 <= coordY && coordY < (int)mapSize) {
+                        float weight = 1 - std::sqrt(sqrDst) / erosionRadius;
+                        weightSum += weight;
+                        weights[addIndex] = weight;
+                        xOffsets[addIndex] = x;
+                        yOffsets[addIndex] = y;
+                        addIndex++;
                     }
                 }
             }
         }
 
         unsigned numEntries = addIndex;
-        erosionBrushIndices.push_back(new std::vector<unsigned>(numEntries));
-        erosionBrushWeights.push_back(new std::vector<float>(numEntries));
+        erosionBrushIndices[i] = new std::vector<unsigned>(numEntries);
+        erosionBrushWeights[i] = new std::vector<float>(numEntries);
 
         for (unsigned j = 0; j < numEntries; j++) {
-            erosionBrushIndices[i]->push_back((yOffsets[j] + centerY) * mapSize + xOffsets[j] + centerX);
-            erosionBrushWeights[i]->push_back(weights[j] / weightSum);
+            (*erosionBrushIndices[i])[j] = (yOffsets[j] + centerY) * mapSize + xOffsets[j] + centerX;
+            (*erosionBrushWeights[i])[j] = weights[j] / weightSum;
         }
     }
 }
+
+// Guarantees that all class templates are compiled
+template class Erosion<compute_mode_e::serial>;
+template class Erosion<compute_mode_e::parallel>;

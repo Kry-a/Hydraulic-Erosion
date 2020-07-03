@@ -1,5 +1,5 @@
 # Hydraulic-Erosion
-Hydraulic Erosion simulation example made in C++ parallelized using OpenCL.
+Hydraulic Erosion simulation example made in C++ parallelized.
 
 # Building
 ```sh shell-script

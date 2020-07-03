@@ -11,6 +11,9 @@ struct HeightAndGradient {
     float gradientY;
 };
 
+enum compute_mode_e {serial, parallel};
+
+template <compute_mode_e COMPUTE_MODE = compute_mode_e::serial>
 class Erosion {
 public:
     Erosion(unsigned mapSize);
@@ -23,18 +26,18 @@ private:
 
     unsigned mapSize;
     int seed = 1231204;
-    unsigned erosionRadius = 3;
-    float inertia = 0.05f;
-    float sedimentCapacityFactor = 4;
-    float minSedimentCapacity = 0.01f;
-    float erodeSpeed = 0.3f;
-    float depositSpeed = 0.3f;
-    float evaporateSpeed = 0.01f;
-    float gravity = 4;
-    float maxDropletLifetime = 30;
+    const unsigned erosionRadius = 3;
+    const float inertia = 0.05f;
+    const float sedimentCapacityFactor = 4;
+    const float minSedimentCapacity = 0.01f;
+    const float erodeSpeed = 0.3f;
+    const float depositSpeed = 0.3f;
+    const float evaporateSpeed = 0.01f;
+    const float gravity = 4;
+    const float maxDropletLifetime = 30;
 
-    float initialWaterVolume = 1;
-    float initialSpeed = 1;
+    const float initialWaterVolume = 1;
+    const float initialSpeed = 1;
 
     void initializeBrushIndices();
     HeightAndGradient calculateHeightAndGradient(std::vector<float> &nodes, float posX, float posY);
