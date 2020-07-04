@@ -1,3 +1,6 @@
 [submodule "include/random"]
 	path = include/random
 	url = https://github.com/effolkronium/random.git
+[submodule "include/SimplexNoise"]
+	path = include/SimplexNoise
+	url = https://github.com/SRombauts/SimplexNoise.git

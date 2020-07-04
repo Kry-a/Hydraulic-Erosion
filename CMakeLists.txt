@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12.4)
+cmake_minimum_required(VERSION 3.0)
 project(Hydraulic-Erosion)
 
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
@@ -12,5 +12,8 @@ add_subdirectory(include/random)
 find_package(TIFF)
 find_package(OpenMP)
 
-add_executable(Hydraulic-Erosion src/main.cpp src/Erosion.cpp simplex/SimplexNoise.cpp)
-target_link_libraries(Hydraulic-Erosion effolkronium_random TIFF::TIFF OpenMP::OpenMP_CXX)
+include_directories("include/SimplexNoise/src")
+add_library(SimplexNoise STATIC include/SimplexNoise/src/SimplexNoise.cpp)
+
+add_executable(${PROJECT_NAME} src/main.cpp src/Erosion.cpp)
+target_link_libraries(${PROJECT_NAME} effolkronium_random SimplexNoise TIFF::TIFF OpenMP::OpenMP_CXX)
